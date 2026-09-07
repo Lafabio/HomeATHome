@@ -45,6 +45,25 @@ function initMap() {
         setTimeout(function() {
             map.invalidateSize();
         }, 100);
+
+        // Conectar com GPS
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(posicao) {
+                    var lat = posicao.coords.latitude;
+                    var lng = posicao.coords.longitude;
+                    map.setView([lat, lng], 15);
+                    document.getElementById('locationCoords').innerHTML = 
+                        '📍 Sua localizacao atual detectada';
+                },
+                function(erro) {
+                    console.warn('GPS nao disponible:', erro.message);
+                    document.getElementById('locationCoords').innerHTML = 
+                        '📍 Localizacao padrao: Brasilia - clique no mapa para marcar';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
     } catch (e) {
         console.error('Erro ao inicializar mapa:', e);
     }
