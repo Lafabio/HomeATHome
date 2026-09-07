@@ -2,7 +2,12 @@
 const SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase;
+try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+    console.error('Erro ao inicializar Supabase:', e);
+}
 
 // Variaveis globais
 let map;
@@ -68,6 +73,10 @@ function formatarTelefone(telefone) {
 
 // Carregar interessados do Supabase
 async function carregarInteressados() {
+    if (!supabase) {
+        console.warn('Supabase nao inicializado');
+        return;
+    }
     try {
         const { data, error } = await supabase
             .from('interessados')
@@ -80,12 +89,15 @@ async function carregarInteressados() {
         renderizarLista();
     } catch (error) {
         console.error('Erro ao carregar:', error);
-        alert('Erro ao carregar dados. Verifique a configuracao do Supabase.');
     }
 }
 
 // Salvar interessado no Supabase
 async function salvarInteressado(dados) {
+    if (!supabase) {
+        alert('Supabase nao conectado.');
+        return;
+    }
     try {
         if (interessadoEditando) {
             // Editar existente
@@ -135,6 +147,10 @@ async function salvarInteressado(dados) {
 // Excluir interessado do Supabase
 async function excluirInteressado() {
     if (!deleteId) return;
+    if (!supabase) {
+        alert('Supabase nao conectado.');
+        return;
+    }
     
     try {
         const { error } = await supabase
