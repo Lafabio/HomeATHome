@@ -2,9 +2,9 @@
 const SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
-let supabase;
+let supabaseClient = null;
 try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 } catch (e) {
     console.error('Erro ao inicializar Supabase:', e);
 }
@@ -18,90 +18,97 @@ let deleteId = null;
 
 // Inicializar mapa
 function initMap() {
-    map = L.map('map').setView([-15.7975, -47.8919], 12);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    try {
+        map = L.map('map').setView([-15.7975, -47.8919], 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-    map.on('click', function(e) {
-        const { lat, lng } = e.latlng;
+        map.on('click', function(e) {
+            var latlng = e.latlng;
+            
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            marker = L.marker([latlng.lat, latlng.lng]).addTo(map)
+                .bindPopup('Localizacao selecionada')
+                .openPopup();
+            
+            document.getElementById('lat').value = latlng.lat.toFixed(6);
+            document.getElementById('lng').value = latlng.lng.toFixed(6);
+            
+            buscarEndereco(latlng.lat, latlng.lng);
+        });
         
-        if (marker) {
-            map.removeLayer(marker);
-        }
-        
-        marker = L.marker([lat, lng]).addTo(map)
-            .bindPopup('Localizacao selecionada')
-            .openPopup();
-        
-        document.getElementById('lat').value = lat.toFixed(6);
-        document.getElementById('lng').value = lng.toFixed(6);
-        
-        buscarEndereco(lat, lng);
-    });
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 100);
+    } catch (e) {
+        console.error('Erro ao inicializar mapa:', e);
+    }
 }
 
 // Buscar endereco via reverse geocoding
 async function buscarEndereco(lat, lng) {
     try {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=pt-BR`
+        var response = await fetch(
+            'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=pt-BR'
         );
-        const data = await response.json();
+        var data = await response.json();
         
         if (data.display_name) {
             document.getElementById('endereco').value = data.display_name;
             document.getElementById('locationCoords').innerHTML = 
-                `📍 ${data.display_name.substring(0, 80)}...`;
+                '📍 ' + data.display_name.substring(0, 80) + '...';
         }
-    } catch (error) {
+    } catch (err) {
         document.getElementById('locationCoords').innerHTML = 
-            `📍 Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+            '📍 Lat: ' + lat.toFixed(4) + ', Lng: ' + lng.toFixed(4);
     }
 }
 
 // Formatacao de telefone
 function formatarTelefone(telefone) {
     if (!telefone) return '';
-    const nums = telefone.replace(/\D/g, '');
+    var nums = telefone.replace(/\D/g, '');
     if (nums.length === 11) {
-        return `(${nums.slice(0,2)}) ${nums.slice(2,7)}-${nums.slice(7)}`;
+        return '(' + nums.slice(0,2) + ') ' + nums.slice(2,7) + '-' + nums.slice(7);
     }
     return telefone;
 }
 
 // Carregar interessados do Supabase
 async function carregarInteressados() {
-    if (!supabase) {
+    if (!supabaseClient) {
         console.warn('Supabase nao inicializado');
         return;
     }
     try {
-        const { data, error } = await supabase
+        var result = await supabaseClient
             .from('interessados')
             .select('*')
             .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (result.error) throw result.error;
         
-        interessados = data || [];
+        interessados = result.data || [];
         renderizarLista();
-    } catch (error) {
-        console.error('Erro ao carregar:', error);
+    } catch (err) {
+        console.error('Erro ao carregar:', err);
     }
 }
 
 // Salvar interessado no Supabase
 async function salvarInteressado(dados) {
-    if (!supabase) {
+    if (!supabaseClient) {
         alert('Supabase nao conectado.');
         return;
     }
     try {
         if (interessadoEditando) {
-            // Editar existente
-            const { error } = await supabase
+            var result = await supabaseClient
                 .from('interessados')
                 .update({
                     nome: dados.nome,
@@ -116,11 +123,10 @@ async function salvarInteressado(dados) {
                 })
                 .eq('id', interessadoEditando);
             
-            if (error) throw error;
+            if (result.error) throw result.error;
             interessadoEditando = null;
         } else {
-            // Criar novo
-            const { error } = await supabase
+            var result = await supabaseClient
                 .from('interessados')
                 .insert({
                     nome: dados.nome,
@@ -134,12 +140,12 @@ async function salvarInteressado(dados) {
                     endereco_geocode: dados.endereco
                 });
             
-            if (error) throw error;
+            if (result.error) throw result.error;
         }
         
         await carregarInteressados();
-    } catch (error) {
-        console.error('Erro ao salvar:', error);
+    } catch (err) {
+        console.error('Erro ao salvar:', err);
         alert('Erro ao salvar. Tente novamente.');
     }
 }
@@ -147,105 +153,99 @@ async function salvarInteressado(dados) {
 // Excluir interessado do Supabase
 async function excluirInteressado() {
     if (!deleteId) return;
-    if (!supabase) {
+    if (!supabaseClient) {
         alert('Supabase nao conectado.');
         return;
     }
     
     try {
-        const { error } = await supabase
+        var result = await supabaseClient
             .from('interessados')
             .delete()
             .eq('id', deleteId);
         
-        if (error) throw error;
+        if (result.error) throw result.error;
         
         await carregarInteressados();
         fecharModal();
-    } catch (error) {
-        console.error('Erro ao excluir:', error);
+    } catch (err) {
+        console.error('Erro ao excluir:', err);
         alert('Erro ao excluir. Tente novamente.');
     }
 }
 
 // Renderizar lista de interessados
-function renderizarLista(filtro = null) {
-    const container = document.getElementById('listaInteressados');
-    const lista = filtro || interessados;
+function renderizarLista(filtro) {
+    var container = document.getElementById('listaInteressados');
+    var lista = filtro || interessados;
     
     if (lista.length === 0) {
         container.innerHTML = '<p class="empty-state">Nenhum interessado cadastrado ainda.</p>';
     } else {
-        container.innerHTML = lista.map(interesado => `
-            <div class="interessado-card" data-id="${interessado.id}">
-                <div class="card-header">
-                    <span class="card-name">${interessado.nome}</span>
-                    <span class="card-sex ${interessado.sexo.toLowerCase()}">${interessado.sexo}</span>
-                </div>
-                
-                <div class="card-details">
-                    <p>📅 Idade: ${interessado.idade} anos</p>
-                    ${interessado.telefone ? `<p>📱 ${formatarTelefone(interesado.telefone)}</p>` : ''}
-                    ${interessado.endereco_completo ? `<p>🏠 ${interessado.endereco_completo}</p>` : ''}
-                </div>
-                
-                ${interessado.info_adicionais ? `
-                    <div class="card-info">
-                        <strong>Obs:</strong> ${interessado.info_adicionais}
-                    </div>
-                ` : ''}
-                
-                <div class="card-actions">
-                    <button class="btn-whatsapp" onclick="enviarWhatsApp(${interessado.id})">
-                        📱 WhatsApp
-                    </button>
-                    <button class="btn-location" onclick="verNoMapa(${interessado.latitude}, ${interessado.longitude})">
-                        📍 Mapa
-                    </button>
-                    <button class="btn-edit" onclick="editarInteressado(${interessado.id})">
-                        ✏️ Editar
-                    </button>
-                    <button class="btn-delete" onclick="confirmarExclusao(${interessado.id})">
-                        🗑️
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        var html = '';
+        for (var i = 0; i < lista.length; i++) {
+            var int = lista[i];
+            html += '<div class="interessado-card" data-id="' + int.id + '">';
+            html += '<div class="card-header">';
+            html += '<span class="card-name">' + int.nome + '</span>';
+            html += '<span class="card-sex ' + int.sexo.toLowerCase() + '">' + int.sexo + '</span>';
+            html += '</div>';
+            html += '<div class="card-details">';
+            html += '<p>📅 Idade: ' + int.idade + ' anos</p>';
+            if (int.telefone) html += '<p>📱 ' + formatarTelefone(int.telefone) + '</p>';
+            if (int.endereco_completo) html += '<p>🏠 ' + int.endereco_completo + '</p>';
+            html += '</div>';
+            if (int.info_adicionais) {
+                html += '<div class="card-info"><strong>Obs:</strong> ' + int.info_adicionais + '</div>';
+            }
+            html += '<div class="card-actions">';
+            html += '<button class="btn-whatsapp" onclick="enviarWhatsApp(' + int.id + ')">📱 WhatsApp</button>';
+            html += '<button class="btn-location" onclick="verNoMapa(' + int.latitude + ', ' + int.longitude + ')">📍 Mapa</button>';
+            html += '<button class="btn-edit" onclick="editarInteressado(' + int.id + ')">✏️ Editar</button>';
+            html += '<button class="btn-delete" onclick="confirmarExclusao(' + int.id + ')">🗑️</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+        container.innerHTML = html;
     }
     
     document.getElementById('totalCadastrados').textContent = 
-        `Total: ${lista.length} interessado(s)`;
+        'Total: ' + lista.length + ' interessado(s)';
 }
 
 // Enviar dados via WhatsApp
 function enviarWhatsApp(id) {
-    const interessado = interessados.find(i => i.id === id);
+    var interessado = null;
+    for (var i = 0; i < interessados.length; i++) {
+        if (interessados[i].id === id) {
+            interessado = interessados[i];
+            break;
+        }
+    }
+    if (!interessado) return;
     
-    let mensagem = `📚 *INTERESSADO EM ESTUDO BIBLICO*\n\n`;
-    mensagem += `👤 *Nome:* ${interessado.nome}\n`;
-    mensagem += `⚧ *Sexo:* ${interessado.sexo}\n`;
-    mensagem += `📅 *Idade:* ${interessado.idade} anos\n`;
+    var msg = '📚 *INTERESSADO EM ESTUDO BIBLICO*\n\n';
+    msg += '👤 *Nome:* ' + interessado.nome + '\n';
+    msg += '⚧ *Sexo:* ' + interessado.sexo + '\n';
+    msg += '📅 *Idade:* ' + interessado.idade + ' anos\n';
     
     if (interessado.telefone) {
-        mensagem += `📱 *Telefone:* ${formatarTelefone(interesado.telefone)}\n`;
+        msg += '📱 *Telefone:* ' + formatarTelefone(interesado.telefone) + '\n';
     }
     
     if (interessado.endereco_completo) {
-        mensagem += `🏠 *Endereco:* ${interessado.endereco_completo}\n`;
+        msg += '🏠 *Endereco:* ' + interessado.endereco_completo + '\n';
     }
     
     if (interessado.info_adicionais) {
-        mensagem += `📝 *Observacoes:* ${interessado.info_adicionais}\n`;
+        msg += '📝 *Observacoes:* ' + interessado.info_adicionais + '\n';
     }
     
     if (interessado.latitude && interessado.longitude) {
-        mensagem += `\n📍 *Localizacao:* https://www.google.com/maps?q=${interessado.latitude},${interessado.longitude}\n`;
+        msg += '\n📍 *Localizacao:* https://www.google.com/maps?q=' + interessado.latitude + ',' + interessado.longitude + '\n';
     }
     
-    const dataFormatada = new Date(interessado.data_cadastro).toLocaleDateString('pt-BR');
-    mensagem += `\n📅 *Cadastrado em:* ${dataFormatada}`;
-    
-    const urlWhatsApp = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    var urlWhatsApp = 'https://wa.me/?text=' + encodeURIComponent(msg);
     window.open(urlWhatsApp, '_blank');
 }
 
@@ -256,34 +256,42 @@ function exportarTodosWhatsApp() {
         return;
     }
     
-    let mensagem = `📚 *LISTA DE INTERESSADOS - HOMEATHOME*\n`;
-    mensagem += `📅 ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+    var msg = '📚 *LISTA DE INTERESSADOS - HOMEATHOME*\n';
+    msg += '📅 ' + new Date().toLocaleDateString('pt-BR') + '\n\n';
     
-    interessados.forEach((int, index) => {
-        mensagem += `*${index + 1}. ${int.nome}*\n`;
-        mensagem += `   ⚧ ${int.sexo} | 📅 ${int.idade} anos\n`;
-        if (int.telefone) mensagem += `   📱 ${formatarTelefone(int.telefone)}\n`;
-        if (int.endereco_completo) mensagem += `   🏠 ${int.endereco_completo}\n`;
+    for (var i = 0; i < interessados.length; i++) {
+        var int = interessados[i];
+        msg += '*' + (i + 1) + '. ' + int.nome + '*\n';
+        msg += '   ⚧ ' + int.sexo + ' | 📅 ' + int.idade + ' anos\n';
+        if (int.telefone) msg += '   📱 ' + formatarTelefone(int.telefone) + '\n';
+        if (int.endereco_completo) msg += '   🏠 ' + int.endereco_completo + '\n';
         if (int.latitude && int.longitude) {
-            mensagem += `   📍 https://www.google.com/maps?q=${int.latitude},${int.longitude}\n`;
+            msg += '   📍 https://www.google.com/maps?q=' + int.latitude + ',' + int.longitude + '\n';
         }
-        mensagem += `\n`;
-    });
+        msg += '\n';
+    }
     
-    const urlWhatsApp = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    var urlWhatsApp = 'https://wa.me/?text=' + encodeURIComponent(msg);
     window.open(urlWhatsApp, '_blank');
 }
 
 // Ver localizacao no mapa
 function verNoMapa(lat, lng) {
     if (lat && lng) {
-        window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+        window.open('https://www.google.com/maps?q=' + lat + ',' + lng, '_blank');
     }
 }
 
 // Editar interessado
 function editarInteressado(id) {
-    const interessado = interessados.find(i => i.id === id);
+    var interessado = null;
+    for (var i = 0; i < interessados.length; i++) {
+        if (interessados[i].id === id) {
+            interessado = interessados[i];
+            break;
+        }
+    }
+    if (!interessado) return;
     
     document.getElementById('nome').value = interessado.nome;
     document.getElementById('sexo').value = interessado.sexo;
@@ -300,7 +308,7 @@ function editarInteressado(id) {
         marker = L.marker([interessado.latitude, interessado.longitude]).addTo(map)
             .bindPopup('Editando localizacao').openPopup();
         document.getElementById('locationCoords').innerHTML = 
-            `📍 Editando localizacao de ${interessado.nome}`;
+            '📍 Editando localizacao de ' + interessado.nome;
     }
     
     interessadoEditando = id;
@@ -321,16 +329,19 @@ function fecharModal() {
 
 // Buscar interessados
 function buscarInteressados() {
-    const termo = document.getElementById('searchInput').value.toLowerCase();
+    var termo = document.getElementById('searchInput').value.toLowerCase();
     
     if (!termo) {
         renderizarLista();
         return;
     }
     
-    const filtro = interessados.filter(i => 
-        i.nome.toLowerCase().includes(termo)
-    );
+    var filtro = [];
+    for (var i = 0; i < interessados.length; i++) {
+        if (interessados[i].nome.toLowerCase().indexOf(termo) !== -1) {
+            filtro.push(interessados[i]);
+        }
+    }
     
     renderizarLista(filtro);
 }
@@ -352,16 +363,15 @@ function limparFormulario() {
     interessadoEditando = null;
 }
 
-// Event Listeners
+// Inicializacao
 document.addEventListener('DOMContentLoaded', function() {
     initMap();
     carregarInteressados();
     
-    // Form submit
     document.getElementById('cadastroForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const dados = {
+        var dados = {
             nome: document.getElementById('nome').value,
             sexo: document.getElementById('sexo').value,
             idade: document.getElementById('idade').value,
@@ -379,30 +389,27 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
     });
     
-    // Confirm delete
     document.getElementById('confirmDeleteBtn').addEventListener('click', excluirInteressado);
     
-    // Mobile nav toggle
     document.getElementById('navToggle').addEventListener('click', function() {
         document.getElementById('navMenu').classList.toggle('active');
     });
     
-    // Close mobile menu
-    document.querySelectorAll('.nav-menu a').forEach(link => {
-        link.addEventListener('click', () => {
+    var navLinks = document.querySelectorAll('.nav-menu a');
+    for (var i = 0; i < navLinks.length; i++) {
+        navLinks[i].addEventListener('click', function() {
             document.getElementById('navMenu').classList.remove('active');
         });
-    });
+    }
     
-    // Format phone on input
     document.getElementById('telefone').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
+        var value = e.target.value.replace(/\D/g, '');
         if (value.length > 11) value = value.slice(0, 11);
         
         if (value.length > 6) {
-            value = `(${value.slice(0,2)}) ${value.slice(2,7)}-${value.slice(7)}`;
+            value = '(' + value.slice(0,2) + ') ' + value.slice(2,7) + '-' + value.slice(7);
         } else if (value.length > 2) {
-            value = `(${value.slice(0,2)}) ${value.slice(2)}`;
+            value = '(' + value.slice(0,2) + ') ' + value.slice(2);
         }
         
         e.target.value = value;
