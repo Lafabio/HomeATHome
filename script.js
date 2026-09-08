@@ -71,6 +71,7 @@ function initMap() {
 
 // Buscar endereco via reverse geocoding
 async function buscarEndereco(lat, lng) {
+    document.getElementById('locationCoords').innerHTML = '📍 Buscando endereco...';
     try {
         var response = await fetch(
             'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=pt-BR'
@@ -78,9 +79,11 @@ async function buscarEndereco(lat, lng) {
         var data = await response.json();
         
         if (data.display_name) {
-            document.getElementById('endereco').value = data.display_name;
+            var endereco = data.display_name;
+            document.getElementById('endereco').value = endereco;
+            document.getElementById('enderecoCompleto').value = endereco;
             document.getElementById('locationCoords').innerHTML = 
-                '📍 ' + data.display_name.substring(0, 80) + '...';
+                '📍 ' + endereco.substring(0, 80) + '...';
         }
     } catch (err) {
         document.getElementById('locationCoords').innerHTML = 
