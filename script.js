@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var data = document.getElementById('horasData').value;
         var obs = document.getElementById('horasObs').value;
         
-        await salvarHoras(data, horas, 'Manual', obs);
+        await salvarHoras(data, horas, obs);
         
         document.getElementById('horasQtd').value = '';
         document.getElementById('horasObs').value = '';
@@ -607,7 +607,6 @@ function pararCronometro() {
     cronometroRodando = false;
     
     var horas = cronometroSegundos / 3600;
-    var tipo = document.getElementById('tipoPregacao').value;
     
     if (horas < 0.01) {
         alert('Tempo muito curto para registrar.');
@@ -616,7 +615,7 @@ function pararCronometro() {
     }
     
     var data = new Date().toISOString().split('T')[0];
-    salvarHoras(data, parseFloat(horas.toFixed(2)), tipo, '');
+    salvarHoras(data, parseFloat(horas.toFixed(2)), '');
     
     resetarCronometro();
 }
@@ -647,7 +646,7 @@ function atualizarDisplayCronometro() {
 
 var horasRegistros = [];
 
-async function salvarHoras(data, horas, tipo, obs) {
+async function salvarHoras(data, horas, obs) {
     if (!supabaseClient || !usuarioAtual) {
         alert('Faca login para salvar.');
         return;
@@ -661,7 +660,6 @@ async function salvarHoras(data, horas, tipo, obs) {
                 data: data,
                 horas: horas,
                 minutos: Math.round(horas * 60),
-                tipo: tipo,
                 observacoes: obs
             });
         
@@ -728,7 +726,7 @@ function renderizarHoras() {
         html += '<div class="historico-item">';
         html += '<div class="historico-item-info">';
         html += '<span class="historico-item-data">' + dataFormatada + '</span>';
-        html += '<span class="historico-item-tipo">' + reg.tipo + (reg.observacoes ? ' - ' + reg.observacoes : '') + '</span>';
+        html += '<span class="historico-item-tipo">' + (reg.observacoes || '') + '</span>';
         html += '</div>';
         html += '<span class="historico-item-horas">' + reg.horas.toFixed(1) + 'h</span>';
         html += '<button class="historico-item-delete" onclick="excluirHora(' + reg.id + ')">🗑️</button>';
