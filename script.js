@@ -112,6 +112,35 @@ async function fazerLogout() {
     document.getElementById('appPrincipal').style.display = 'none';
 }
 
+async function esqueciSenha() {
+    var email = document.getElementById('loginEmail').value.trim();
+    
+    if (!email) {
+        mostrarErroAuth('Digite seu email no campo acima antes de clicar.');
+        return;
+    }
+    
+    if (!supabaseClient) {
+        mostrarErroAuth('Erro: Supabase nao conectado.');
+        return;
+    }
+    
+    try {
+        var result = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin
+        });
+        
+        if (result.error) {
+            mostrarErroAuth(result.error.message);
+            return;
+        }
+        
+        mostrarErroAuth('Email enviado! Verifique sua caixa de entrada para redefinir a senha.');
+    } catch (err) {
+        mostrarErroAuth('Erro ao enviar email: ' + err.message);
+    }
+}
+
 function entrarNoApp(usuario) {
     usuarioAtual = usuario;
     var nome = usuario.user_metadata && usuario.user_metadata.nome 
