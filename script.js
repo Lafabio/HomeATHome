@@ -3,11 +3,6 @@ var SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
 var supabaseClient = null;
-try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch (e) {
-    console.error('Erro ao inicializar Supabase:', e);
-}
 
 // Variaveis globais
 var map;
@@ -38,6 +33,11 @@ function mostrarErroAuth(msg) {
 }
 
 async function fazerCadastro() {
+    if (!supabaseClient) {
+        mostrarErroAuth('Erro: Supabase nao conectado. Recarregue a pagina.');
+        return;
+    }
+
     var nome = document.getElementById('cadastroNome').value.trim();
     var email = document.getElementById('cadastroEmail').value.trim();
     var senha = document.getElementById('cadastroSenha').value;
@@ -76,6 +76,11 @@ async function fazerCadastro() {
 }
 
 async function fazerLogin() {
+    if (!supabaseClient) {
+        mostrarErroAuth('Erro: Supabase nao conectado. Recarregue a pagina.');
+        return;
+    }
+
     var email = document.getElementById('loginEmail').value.trim();
     var senha = document.getElementById('loginSenha').value;
 
@@ -91,11 +96,12 @@ async function fazerLogin() {
         });
 
         if (result.error) {
-            mostrarErroAuth('Email ou senha incorretos.');
+            mostrarErroAuth(result.error.message);
             return;
         }
     } catch (err) {
-        mostrarErroAuth('Erro ao fazer login. Tente novamente.');
+        console.error('Erro no login:', err);
+        mostrarErroAuth('Erro ao fazer login: ' + err.message);
     }
 }
 
@@ -514,6 +520,18 @@ var cronometroSegundos = 0;
 var cronometroRodando = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Supabase
+    try {
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('Supabase inicializado com sucesso');
+        } else {
+            console.error('window.supabase nao encontrado');
+        }
+    } catch (e) {
+        console.error('Erro ao inicializar Supabase:', e);
+    }
+
     verificarSessao();
     
     // Data atual no campo de horas
