@@ -2,7 +2,7 @@
 var SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
-var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var supabaseClient = null;
 
 // Variaveis globais
 var map;
@@ -491,6 +491,15 @@ function limparFormulario() {
 // ============ INICIALIZACAO ============
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Supabase
+    try {
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+    } catch (e) {
+        console.error('Erro ao inicializar Supabase:', e);
+    }
+
     verificarSessao();
     
     // Login Enter
