@@ -10,124 +10,178 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">📖 HomeATHome</div>
-        <button class="nav-toggle" id="navToggle" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-        <ul class="nav-menu" id="navMenu">
-            <li><a href="#cadastro">Cadastro</a></li>
-            <li><a href="#lista">Interessados</a></li>
-        </ul>
-    </nav>
 
-    <main class="container">
-        <!-- Formulario de Cadastro -->
-        <section class="section" id="cadastro">
-            <h1>📋 Cadastro de Interessados</h1>
-            <p class="subtitle">Clique no mapa para marcar a localizacao, depois preencha os dados</p>
-            
-            <div class="form-grid">
-                <!-- Mapa -->
-                <div class="map-container">
-                    <div id="map"></div>
-                    <div class="map-info">
-                        <span id="locationCoords">📍 Clique no mapa para marcar a localizacao</span>
-                    </div>
+    <!-- TELA DE AUTENTICACAO -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1>📖 HomeATHome</h1>
+                <p>Estudos Biblicos e Revisitas</p>
+            </div>
+
+            <!-- Login -->
+            <div id="loginForm" class="auth-form">
+                <h2>Entrar</h2>
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="seu@email.com" required>
                 </div>
-
-                <!-- Formulario -->
-                <div class="form-container">
-                    <form id="cadastroForm">
-                        <input type="hidden" id="lat" name="lat">
-                        <input type="hidden" id="lng" name="lng">
-                        <input type="hidden" id="endereco" name="endereco">
-
-                        <div class="form-group">
-                            <label for="nome">Nome Completo *</label>
-                            <input type="text" id="nome" name="nome" required placeholder="Nome do interessado">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="sexo">Sexo *</label>
-                                <select id="sexo" name="sexo" required>
-                                    <option value="">Selecione</option>
-                                    <option value="Masculino">Masculino</option>
-                                    <option value="Feminino">Feminino</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="idade">Idade *</label>
-                                <input type="number" id="idade" name="idade" required min="1" max="120" placeholder="Idade">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="telefone">Telefone</label>
-                            <input type="tel" id="telefone" name="telefone" placeholder="(XX) XXXXX-XXXX">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="enderecoCompleto">Endereco Completo</label>
-                            <input type="text" id="enderecoCompleto" name="enderecoCompleto" placeholder="Rua, numero, bairro">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="infoAdicionais">Informacoes Adicionais</label>
-                            <textarea id="infoAdicionais" name="infoAdicionais" rows="3" placeholder="Observacoes, preferencias de horario, etc."></textarea>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary">
-                                💾 Salvar Interessado
-                            </button>
-                            <button type="button" class="btn-secondary" onclick="limparFormulario()">
-                                🗑️ Limpar
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label for="loginSenha">Senha</label>
+                    <input type="password" id="loginSenha" placeholder="Sua senha" required>
                 </div>
-            </div>
-        </section>
-
-        <!-- Lista de Interessados -->
-        <section class="section" id="lista">
-            <h1>👥 Interessados Cadastrados</h1>
-            
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por nome..." onkeyup="buscarInteressados()">
+                <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
+                <p class="auth-switch">Nao tem conta? <a href="#" onclick="mostrarCadastro()">Cadastre-se</a></p>
             </div>
 
-            <div class="stats-bar">
-                <span id="totalCadastrados">Total: 0 interessados</span>
-                <button class="btn-export-all" onclick="exportarTodosWhatsApp()">
-                    📱 Exportar Todos via WhatsApp
-                </button>
+            <!-- Cadastro -->
+            <div id="cadastroAuthForm" class="auth-form" style="display:none;">
+                <h2>Criar Conta</h2>
+                <div class="form-group">
+                    <label for="cadastroNome">Nome</label>
+                    <input type="text" id="cadastroNome" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="cadastroEmail">Email</label>
+                    <input type="email" id="cadastroEmail" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="cadastroSenha">Senha</label>
+                    <input type="password" id="cadastroSenha" placeholder="Minimo 6 caracteres" required>
+                </div>
+                <button class="btn-primary" onclick="fazerCadastro()">Criar Conta</button>
+                <p class="auth-switch">Ja tem conta? <a href="#" onclick="mostrarLogin()">Entrar</a></p>
             </div>
 
-            <div id="listaInteressados" class="cards-container">
-                <p class="empty-state">Nenhum interessado cadastrado ainda.</p>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal de Confirmacao -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <h2>Confirmar Exclusao</h2>
-            <p>Tem certeza que deseja excluir este interessado?</p>
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
-                <button class="btn-danger" id="confirmDeleteBtn">Excluir</button>
-            </div>
+            <div id="authError" class="auth-error" style="display:none;"></div>
         </div>
     </div>
 
-    <footer class="footer">
-        <p>&copy; 2026 HomeATHome - Estudos Biblicos e Revisitas</p>
-    </footer>
+    <!-- APP PRINCIPAL (so aparece logado) -->
+    <div id="appPrincipal" style="display:none;">
+        <nav class="navbar">
+            <div class="nav-brand">📖 HomeATHome</div>
+            <div class="nav-right">
+                <span id="userName" class="nav-user"></span>
+                <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#cadastro">Cadastro</a></li>
+                <li><a href="#lista">Interessados</a></li>
+            </ul>
+        </nav>
+
+        <main class="container">
+            <!-- Formulario de Cadastro -->
+            <section class="section" id="cadastro">
+                <h1>📋 Cadastro de Interessados</h1>
+                <p class="subtitle">Clique no mapa para marcar a localizacao, depois preencha os dados</p>
+                
+                <div class="form-grid">
+                    <!-- Mapa -->
+                    <div class="map-container">
+                        <div id="map"></div>
+                        <div class="map-info">
+                            <span id="locationCoords">📍 Clique no mapa para marcar a localizacao</span>
+                        </div>
+                    </div>
+
+                    <!-- Formulario -->
+                    <div class="form-container">
+                        <form id="cadastroForm">
+                            <input type="hidden" id="lat" name="lat">
+                            <input type="hidden" id="lng" name="lng">
+                            <input type="hidden" id="endereco" name="endereco">
+
+                            <div class="form-group">
+                                <label for="nome">Nome Completo *</label>
+                                <input type="text" id="nome" name="nome" required placeholder="Nome do interessado">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="sexo">Sexo *</label>
+                                    <select id="sexo" name="sexo" required>
+                                        <option value="">Selecione</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Feminino">Feminino</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="idade">Idade *</label>
+                                    <input type="number" id="idade" name="idade" required min="1" max="120" placeholder="Idade">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="telefone">Telefone</label>
+                                <input type="tel" id="telefone" name="telefone" placeholder="(XX) XXXXX-XXXX">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="enderecoCompleto">Endereco Completo</label>
+                                <input type="text" id="enderecoCompleto" name="enderecoCompleto" placeholder="Rua, numero, bairro">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="infoAdicionais">Informacoes Adicionais</label>
+                                <textarea id="infoAdicionais" name="infoAdicionais" rows="3" placeholder="Observacoes, preferencias de horario, etc."></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    💾 Salvar Interessado
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="limparFormulario()">
+                                    🗑️ Limpar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lista de Interessados -->
+            <section class="section" id="lista">
+                <h1>👥 Meus Interessados</h1>
+                
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por nome..." onkeyup="buscarInteressados()">
+                </div>
+
+                <div class="stats-bar">
+                    <span id="totalCadastrados">Total: 0 interessados</span>
+                    <button class="btn-export-all" onclick="exportarTodosWhatsApp()">
+                        📱 Exportar Todos via WhatsApp
+                    </button>
+                </div>
+
+                <div id="listaInteressados" class="cards-container">
+                    <p class="empty-state">Nenhum interessado cadastrado ainda.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal de Confirmacao -->
+        <div id="confirmModal" class="modal">
+            <div class="modal-content">
+                <h2>Confirmar Exclusao</h2>
+                <p>Tem certeza que deseja excluir este interessado?</p>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+                    <button class="btn-danger" id="confirmDeleteBtn">Excluir</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2026 HomeATHome - Estudos Biblicos e Revisitas</p>
+        </footer>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

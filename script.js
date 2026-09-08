@@ -1,22 +1,130 @@
 // Configuracao do Supabase
-const SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
+var SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
-let supabaseClient = null;
-try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch (e) {
-    console.error('Erro ao inicializar Supabase:', e);
-}
+var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Variaveis globais
-let map;
-let marker;
-let interessados = [];
-let interessadoEditando = null;
-let deleteId = null;
+var map;
+var marker;
+var interessados = [];
+var interessadoEditando = null;
+var deleteId = null;
+var usuarioAtual = null;
 
-// Inicializar mapa
+// ============ AUTENTICACAO ============
+
+function mostrarCadastro() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('cadastroAuthForm').style.display = 'block';
+    document.getElementById('authError').style.display = 'none';
+}
+
+function mostrarLogin() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('cadastroAuthForm').style.display = 'none';
+    document.getElementById('authError').style.display = 'none';
+}
+
+function mostrarErroAuth(msg) {
+    var el = document.getElementById('authError');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+async function fazerCadastro() {
+    var nome = document.getElementById('cadastroNome').value.trim();
+    var email = document.getElementById('cadastroEmail').value.trim();
+    var senha = document.getElementById('cadastroSenha').value;
+
+    if (!nome || !email || !senha) {
+        mostrarErroAuth('Preencha todos os campos.');
+        return;
+    }
+
+    if (senha.length < 6) {
+        mostrarErroAuth('A senha deve ter pelo menos 6 caracteres.');
+        return;
+    }
+
+    try {
+        var result = await supabaseClient.auth.signUp({
+            email: email,
+            password: senha,
+            options: {
+                data: { nome: nome }
+            }
+        });
+
+        if (result.error) {
+            mostrarErroAuth(result.error.message);
+            return;
+        }
+
+        if (result.data.user && !result.data.session) {
+            mostrarErroAuth('Conta criada! Verifique seu email para confirmar.');
+        }
+    } catch (err) {
+        mostrarErroAuth('Erro ao criar conta. Tente novamente.');
+    }
+}
+
+async function fazerLogin() {
+    var email = document.getElementById('loginEmail').value.trim();
+    var senha = document.getElementById('loginSenha').value;
+
+    if (!email || !senha) {
+        mostrarErroAuth('Preencha email e senha.');
+        return;
+    }
+
+    try {
+        var result = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: senha
+        });
+
+        if (result.error) {
+            mostrarErroAuth('Email ou senha incorretos.');
+            return;
+        }
+    } catch (err) {
+        mostrarErroAuth('Erro ao fazer login. Tente novamente.');
+    }
+}
+
+async function fazerLogout() {
+    await supabaseClient.auth.signOut();
+    usuarioAtual = null;
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('appPrincipal').style.display = 'none';
+}
+
+function entrarNoApp(usuario) {
+    usuarioAtual = usuario;
+    var nome = usuario.user_metadata && usuario.user_metadata.nome 
+        ? usuario.user_metadata.nome 
+        : usuario.email;
+    document.getElementById('userName').textContent = nome;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appPrincipal').style.display = 'block';
+    
+    if (!map) {
+        initMap();
+    }
+    carregarInteressados();
+}
+
+// Verificar se ja esta logado
+async function verificarSessao() {
+    var result = await supabaseClient.auth.getSession();
+    if (result.data.session && result.data.session.user) {
+        entrarNoApp(result.data.session.user);
+    }
+}
+
+// ============ MAPA ============
+
 function initMap() {
     try {
         map = L.map('map').setView([-15.7975, -47.8919], 12);
@@ -58,8 +166,6 @@ function initMap() {
                 },
                 function(erro) {
                     console.warn('GPS nao disponible:', erro.message);
-                    document.getElementById('locationCoords').innerHTML = 
-                        '📍 Localizacao padrao: Brasilia - clique no mapa para marcar';
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
@@ -101,16 +207,17 @@ function formatarTelefone(telefone) {
     return telefone;
 }
 
-// Carregar interessados do Supabase
+// ============ DADOS (SUPABASE) ============
+
+// Carregar interessados do Supabase (filtrado por usuario)
 async function carregarInteressados() {
-    if (!supabaseClient) {
-        console.warn('Supabase nao inicializado');
-        return;
-    }
+    if (!supabaseClient || !usuarioAtual) return;
+    
     try {
         var result = await supabaseClient
             .from('interessados')
             .select('*')
+            .eq('user_id', usuarioAtual.id)
             .order('created_at', { ascending: false });
         
         if (result.error) throw result.error;
@@ -124,8 +231,8 @@ async function carregarInteressados() {
 
 // Salvar interessado no Supabase
 async function salvarInteressado(dados) {
-    if (!supabaseClient) {
-        alert('Supabase nao conectado.');
+    if (!supabaseClient || !usuarioAtual) {
+        alert('Faca login para salvar.');
         return;
     }
     try {
@@ -143,7 +250,8 @@ async function salvarInteressado(dados) {
                     longitude: dados.lng ? parseFloat(dados.lng) : null,
                     endereco_geocode: dados.endereco
                 })
-                .eq('id', interessadoEditando);
+                .eq('id', interessadoEditando)
+                .eq('user_id', usuarioAtual.id);
             
             if (result.error) throw result.error;
             interessadoEditando = null;
@@ -151,6 +259,7 @@ async function salvarInteressado(dados) {
             var result = await supabaseClient
                 .from('interessados')
                 .insert({
+                    user_id: usuarioAtual.id,
                     nome: dados.nome,
                     sexo: dados.sexo,
                     idade: parseInt(dados.idade),
@@ -174,17 +283,14 @@ async function salvarInteressado(dados) {
 
 // Excluir interessado do Supabase
 async function excluirInteressado() {
-    if (!deleteId) return;
-    if (!supabaseClient) {
-        alert('Supabase nao conectado.');
-        return;
-    }
+    if (!deleteId || !usuarioAtual) return;
     
     try {
         var result = await supabaseClient
             .from('interessados')
             .delete()
-            .eq('id', deleteId);
+            .eq('id', deleteId)
+            .eq('user_id', usuarioAtual.id);
         
         if (result.error) throw result.error;
         
@@ -196,7 +302,8 @@ async function excluirInteressado() {
     }
 }
 
-// Renderizar lista de interessados
+// ============ RENDERIZACAO ============
+
 function renderizarLista(filtro) {
     var container = document.getElementById('listaInteressados');
     var lista = filtro || interessados;
@@ -235,7 +342,8 @@ function renderizarLista(filtro) {
         'Total: ' + lista.length + ' interessado(s)';
 }
 
-// Enviar dados via WhatsApp
+// ============ WHATSAPP ============
+
 function enviarWhatsApp(id) {
     var interessado = null;
     for (var i = 0; i < interessados.length; i++) {
@@ -271,7 +379,6 @@ function enviarWhatsApp(id) {
     window.open(urlWhatsApp, '_blank');
 }
 
-// Exportar todos via WhatsApp
 function exportarTodosWhatsApp() {
     if (interessados.length === 0) {
         alert('Nenhum interessado para exportar!');
@@ -297,14 +404,14 @@ function exportarTodosWhatsApp() {
     window.open(urlWhatsApp, '_blank');
 }
 
-// Ver localizacao no mapa
+// ============ UTILITARIOS ============
+
 function verNoMapa(lat, lng) {
     if (lat && lng) {
         window.open('https://www.google.com/maps?q=' + lat + ',' + lng, '_blank');
     }
 }
 
-// Editar interessado
 function editarInteressado(id) {
     var interessado = null;
     for (var i = 0; i < interessados.length; i++) {
@@ -337,19 +444,16 @@ function editarInteressado(id) {
     document.getElementById('cadastro').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Confirmar exclusao
 function confirmarExclusao(id) {
     deleteId = id;
     document.getElementById('confirmModal').classList.add('active');
 }
 
-// Fechar modal
 function fecharModal() {
     document.getElementById('confirmModal').classList.remove('active');
     deleteId = null;
 }
 
-// Buscar interessados
 function buscarInteressados() {
     var termo = document.getElementById('searchInput').value.toLowerCase();
     
@@ -368,7 +472,6 @@ function buscarInteressados() {
     renderizarLista(filtro);
 }
 
-// Limpar formulario
 function limparFormulario() {
     document.getElementById('cadastroForm').reset();
     document.getElementById('lat').value = '';
@@ -385,11 +488,22 @@ function limparFormulario() {
     interessadoEditando = null;
 }
 
-// Inicializacao
+// ============ INICIALIZACAO ============
+
 document.addEventListener('DOMContentLoaded', function() {
-    initMap();
-    carregarInteressados();
+    verificarSessao();
     
+    // Login Enter
+    document.getElementById('loginSenha').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') fazerLogin();
+    });
+    
+    // Cadastro Enter
+    document.getElementById('cadastroSenha').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') fazerCadastro();
+    });
+
+    // Form submit
     document.getElementById('cadastroForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
