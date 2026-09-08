@@ -134,7 +134,7 @@ async function verificarSessao() {
 
 function initMap() {
     try {
-        map = L.map('map').setView([-15.7975, -47.8919], 12);
+        map = L.map('map').setView([-15.7975, -47.8919], 4);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
@@ -159,27 +159,39 @@ function initMap() {
         
         setTimeout(function() {
             map.invalidateSize();
-        }, 100);
-
-        // Conectar com GPS
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(posicao) {
-                    var lat = posicao.coords.latitude;
-                    var lng = posicao.coords.longitude;
-                    map.setView([lat, lng], 15);
-                    document.getElementById('locationCoords').innerHTML = 
-                        '📍 Sua localizacao atual detectada';
-                },
-                function(erro) {
-                    console.warn('GPS nao disponible:', erro.message);
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        }
+            obterLocalizacaoGPS();
+        }, 300);
     } catch (e) {
         console.error('Erro ao inicializar mapa:', e);
     }
+}
+
+function obterLocalizacaoGPS() {
+    if (!navigator.geolocation) {
+        document.getElementById('locationCoords').innerHTML = 
+            '📍 GPS nao disponivel neste dispositivo';
+        return;
+    }
+
+    document.getElementById('locationCoords').innerHTML = '📍 Obtendo localizacao...';
+
+    navigator.geolocation.getCurrentPosition(
+        function(posicao) {
+            var lat = posicao.coords.latitude;
+            var lng = posicao.coords.longitude;
+            map.setView([lat, lng], 15);
+            document.getElementById('locationCoords').innerHTML = 
+                '📍 Sua localizacao atual';
+        },
+        function(erro) {
+            var msg = '📍 Localizacao padrao: Brasil';
+            if (erro.code === 1) msg = '📍 Permissao de localizacao negada';
+            if (erro.code === 2) msg = '📍 Localizacao indisponivel';
+            if (erro.code === 3) msg = '📍 Tempo esgotado';
+            document.getElementById('locationCoords').innerHTML = msg;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
 }
 
 // Buscar endereco via reverse geocoding
