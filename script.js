@@ -3,6 +3,11 @@ var SUPABASE_URL = 'https://jjmjjlvpaxafxpebvrwb.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWpqbHZwYXhhZnhwZWJ2cndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1ODEzODUsImV4cCI6MjEwMjE1NzM4NX0.-uCFZjREoE1RRxufDFyymYSgodhp3CZXWQjSIEeEW7A';
 
 var supabaseClient = null;
+try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+    console.error('Erro ao inicializar Supabase:', e);
+}
 
 // Variaveis globais
 var map;
@@ -65,7 +70,8 @@ async function fazerCadastro() {
             mostrarErroAuth('Conta criada! Verifique seu email para confirmar.');
         }
     } catch (err) {
-        mostrarErroAuth('Erro ao criar conta. Tente novamente.');
+        console.error('Erro ao criar conta:', err);
+        mostrarErroAuth('Erro ao criar conta: ' + (err.message || 'Tente novamente.'));
     }
 }
 
