@@ -557,9 +557,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         var horas = parseFloat(document.getElementById('horasQtd').value);
         var data = document.getElementById('horasData').value;
+        var objetivo = document.getElementById('objetivoManual').value;
         var obs = document.getElementById('horasObs').value;
         
-        await salvarHoras(data, horas, obs);
+        await salvarHoras(data, horas, objetivo, obs);
         
         document.getElementById('horasQtd').value = '';
         document.getElementById('horasObs').value = '';
@@ -619,6 +620,7 @@ function pararCronometro() {
     cronometroRodando = false;
     
     var horas = cronometroSegundos / 3600;
+    var objetivo = document.getElementById('objetivoCronometro').value;
     
     if (horas < 0.01) {
         alert('Tempo muito curto para registrar.');
@@ -627,7 +629,7 @@ function pararCronometro() {
     }
     
     var data = new Date().toISOString().split('T')[0];
-    salvarHoras(data, parseFloat(horas.toFixed(2)), '');
+    salvarHoras(data, parseFloat(horas.toFixed(2)), objetivo, '');
     
     resetarCronometro();
 }
@@ -658,7 +660,7 @@ function atualizarDisplayCronometro() {
 
 var horasRegistros = [];
 
-async function salvarHoras(data, horas, obs) {
+async function salvarHoras(data, horas, objetivo, obs) {
     if (!supabaseClient || !usuarioAtual) {
         alert('Faca login para salvar.');
         return;
@@ -672,6 +674,7 @@ async function salvarHoras(data, horas, obs) {
                 data: data,
                 horas: horas,
                 minutos: Math.round(horas * 60),
+                tipo: objetivo,
                 observacoes: obs
             });
         
@@ -734,11 +737,15 @@ function renderizarHoras() {
     for (var i = 0; i < horasRegistros.length; i++) {
         var reg = horasRegistros[i];
         var dataFormatada = new Date(reg.data + 'T12:00:00').toLocaleDateString('pt-BR');
+        var objetivoLabel = '';
+        if (reg.tipo === '15') objetivoLabel = '🥉 15h';
+        else if (reg.tipo === '30') objetivoLabel = '🥈 30h';
+        else if (reg.tipo === '50') objetivoLabel = '🥇 50h';
         
         html += '<div class="historico-item">';
         html += '<div class="historico-item-info">';
         html += '<span class="historico-item-data">' + dataFormatada + '</span>';
-        html += '<span class="historico-item-tipo">' + (reg.observacoes || '') + '</span>';
+        html += '<span class="historico-item-tipo">' + objetivoLabel + (reg.observacoes ? ' - ' + reg.observacoes : '') + '</span>';
         html += '</div>';
         html += '<span class="historico-item-horas">' + reg.horas.toFixed(1) + 'h</span>';
         html += '<button class="historico-item-delete" onclick="excluirHora(' + reg.id + ')">🗑️</button>';
@@ -758,25 +765,43 @@ function atualizarProgresso() {
     document.getElementById('mesAtual').textContent = nomesMeses[mesAtual] + ' ' + anoAtual;
     
     var totalMes = 0;
+    var horas15 = 0;
+    var horas30 = 0;
+    var horas50 = 0;
+    
     for (var i = 0; i < horasRegistros.length; i++) {
         var dataReg = new Date(horasRegistros[i].data + 'T12:00:00');
         if (dataReg.getMonth() === mesAtual && dataReg.getFullYear() === anoAtual) {
             totalMes += horasRegistros[i].horas;
+            var obj = horasRegistros[i].tipo;
+            if (obj === '15') horas15 += horasRegistros[i].horas;
+            else if (obj === '30') horas30 += horasRegistros[i].horas;
+            else if (obj === '50') horas50 += horasRegistros[i].horas;
         }
     }
     
     document.getElementById('totalHorasMes').textContent = totalMes.toFixed(1);
     
+    // Progresso geral
     var percentual = Math.min((totalMes / 50) * 100, 100);
     document.getElementById('progressoFill').style.width = percentual + '%';
     document.getElementById('progressoText').textContent = totalMes.toFixed(1) + ' / 50 horas';
     
-    // Marcos
-    var marco15 = document.getElementById('marco15');
-    var marco30 = document.getElementById('marco30');
-    var marco50 = document.getElementById('marco50');
+    // Objetivo 15h
+    var perc15 = Math.min((horas15 / 15) * 100, 100);
+    document.getElementById('fill15').style.width = perc15 + '%';
+    document.getElementById('horas15').textContent = horas15.toFixed(1) + ' / 15h';
+    document.getElementById('obj15').classList.toggle('atingido', horas15 >= 15);
     
-    marco15.classList.toggle('atingido', totalMes >= 15);
-    marco30.classList.toggle('atingido', totalMes >= 30);
-    marco50.classList.toggle('atingido', totalMes >= 50);
+    // Objetivo 30h
+    var perc30 = Math.min((horas30 / 30) * 100, 100);
+    document.getElementById('fill30').style.width = perc30 + '%';
+    document.getElementById('horas30').textContent = horas30.toFixed(1) + ' / 30h';
+    document.getElementById('obj30').classList.toggle('atingido', horas30 >= 30);
+    
+    // Objetivo 50h
+    var perc50 = Math.min((horas50 / 50) * 100, 100);
+    document.getElementById('fill50').style.width = perc50 + '%';
+    document.getElementById('horas50').textContent = horas50.toFixed(1) + ' / 50h';
+    document.getElementById('obj50').classList.toggle('atingido', horas50 >= 50);
 }
