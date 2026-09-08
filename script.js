@@ -634,6 +634,13 @@ function pararCronometro() {
     resetarCronometro();
 }
 
+function selecionarObjetivo(valor) {
+    if (objetivoMesAtual) {
+        alert('Objetivo ja definido para este mes: ' + objetivoMesAtual + 'h');
+        return;
+    }
+}
+
 function resetarCronometro() {
     cronometroSegundos = 0;
     atualizarDisplayCronometro();
@@ -659,11 +666,20 @@ function atualizarDisplayCronometro() {
 // ============ HORAS (SUPABASE) ============
 
 var horasRegistros = [];
+var objetivoMesAtual = null;
 
 async function salvarHoras(data, horas, objetivo, obs) {
     if (!supabaseClient || !usuarioAtual) {
         alert('Faca login para salvar.');
         return;
+    }
+    
+    // Se ja tem objetivo definido para o mes, usar ele
+    if (objetivoMesAtual) {
+        objetivo = objetivoMesAtual;
+    } else {
+        // Definir objetivo para o mes
+        await definirObjetivoMes(objetivo);
     }
     
     try {
@@ -687,6 +703,87 @@ async function salvarHoras(data, horas, objetivo, obs) {
     }
 }
 
+async function definirObjetivoMes(objetivo) {
+    if (!supabaseClient || !usuarioAtual) return;
+    
+    var agora = new Date();
+    var mes = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0');
+    
+    try {
+        // Verificar se ja existe objetivo para este mes
+        var result = await supabaseClient
+            .from('objetivo_mes')
+            .select('*')
+            .eq('user_id', usuarioAtual.id)
+            .eq('mes', mes)
+            .single();
+        
+        if (result.data) {
+            // Ja existe objetivo
+            objetivoMesAtual = result.data.objetivo;
+            atualizarDisplayObjetivo(objetivoMesAtual);
+            return;
+        }
+        
+        // Criar novo objetivo
+        var insertResult = await supabaseClient
+            .from('objetivo_mes')
+            .insert({
+                user_id: usuarioAtual.id,
+                mes: mes,
+                objetivo: objetivo
+            });
+        
+        if (insertResult.error) throw insertResult.error;
+        
+        objetivoMesAtual = objetivo;
+        atualizarDisplayObjetivo(objetivo);
+    } catch (err) {
+        console.error('Erro ao definir objetivo:', err);
+        // Se a tabela nao existir, usar o objetivo selecionado
+        objetivoMesAtual = objetivo;
+        atualizarDisplayObjetivo(objetivo);
+    }
+}
+
+async function carregarObjetivoMes() {
+    if (!supabaseClient || !usuarioAtual) return;
+    
+    var agora = new Date();
+    var mes = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0');
+    
+    try {
+        var result = await supabaseClient
+            .from('objetivo_mes')
+            .select('objetivo')
+            .eq('user_id', usuarioAtual.id)
+            .eq('mes', mes)
+            .single();
+        
+        if (result.data) {
+            objetivoMesAtual = result.data.objetivo;
+            atualizarDisplayObjetivo(objetivoMesAtual);
+            
+            // Travar os seletores
+            document.getElementById('objetivoCronometro').value = objetivoMesAtual;
+            document.getElementById('objetivoManual').value = objetivoMesAtual;
+            document.getElementById('objetivoCronometro').disabled = true;
+            document.getElementById('objetivoManual').disabled = true;
+        }
+    } catch (err) {
+        console.log('Nenhum objetivo definido para este mes');
+    }
+}
+
+function atualizarDisplayObjetivo(objetivo) {
+    var labels = {
+        '15': '🥉 Pioneiro Auxiliar (15h)',
+        '30': '🥈 Pioneiro Auxiliar Especial (30h)',
+        '50': '🥇 Pioneiro Regular (50h)'
+    };
+    document.getElementById('objetivoSelecionadoValor').textContent = labels[objetivo] || '🥇 Pioneiro Regular (50h)';
+}
+
 async function excluirHora(id) {
     if (!supabaseClient || !usuarioAtual) return;
     
@@ -707,6 +804,8 @@ async function excluirHora(id) {
 
 async function carregarHoras() {
     if (!supabaseClient || !usuarioAtual) return;
+    
+    await carregarObjetivoMes();
     
     try {
         var result = await supabaseClient
@@ -765,43 +864,23 @@ function atualizarProgresso() {
     document.getElementById('mesAtual').textContent = nomesMeses[mesAtual] + ' ' + anoAtual;
     
     var totalMes = 0;
-    var horas15 = 0;
-    var horas30 = 0;
-    var horas50 = 0;
     
     for (var i = 0; i < horasRegistros.length; i++) {
         var dataReg = new Date(horasRegistros[i].data + 'T12:00:00');
         if (dataReg.getMonth() === mesAtual && dataReg.getFullYear() === anoAtual) {
             totalMes += horasRegistros[i].horas;
-            var obj = horasRegistros[i].tipo;
-            if (obj === '15') horas15 += horasRegistros[i].horas;
-            else if (obj === '30') horas30 += horasRegistros[i].horas;
-            else if (obj === '50') horas50 += horasRegistros[i].horas;
         }
     }
     
     document.getElementById('totalHorasMes').textContent = totalMes.toFixed(1);
     
-    // Progresso geral
-    var percentual = Math.min((totalMes / 50) * 100, 100);
+    // Meta do objetivo selecionado
+    var meta = 50;
+    if (objetivoMesAtual === '15') meta = 15;
+    else if (objetivoMesAtual === '30') meta = 30;
+    else meta = 50;
+    
+    var percentual = Math.min((totalMes / meta) * 100, 100);
     document.getElementById('progressoFill').style.width = percentual + '%';
-    document.getElementById('progressoText').textContent = totalMes.toFixed(1) + ' / 50 horas';
-    
-    // Objetivo 15h
-    var perc15 = Math.min((horas15 / 15) * 100, 100);
-    document.getElementById('fill15').style.width = perc15 + '%';
-    document.getElementById('horas15').textContent = horas15.toFixed(1) + ' / 15h';
-    document.getElementById('obj15').classList.toggle('atingido', horas15 >= 15);
-    
-    // Objetivo 30h
-    var perc30 = Math.min((horas30 / 30) * 100, 100);
-    document.getElementById('fill30').style.width = perc30 + '%';
-    document.getElementById('horas30').textContent = horas30.toFixed(1) + ' / 30h';
-    document.getElementById('obj30').classList.toggle('atingido', horas30 >= 30);
-    
-    // Objetivo 50h
-    var perc50 = Math.min((horas50 / 50) * 100, 100);
-    document.getElementById('fill50').style.width = perc50 + '%';
-    document.getElementById('horas50').textContent = horas50.toFixed(1) + ' / 50h';
-    document.getElementById('obj50').classList.toggle('atingido', horas50 >= 50);
+    document.getElementById('progressoText').textContent = totalMes.toFixed(1) + ' / ' + meta + ' horas';
 }

@@ -224,62 +224,19 @@
                 <div class="progresso-container">
                     <h3>📊 Progresso Mensal - <span id="mesAtual"></span></h3>
                     
-                    <!-- Progresso Geral -->
-                    <div class="progresso-geral">
-                        <div class="progresso-bar">
-                            <div class="progresso-fill" id="progressoFill" style="width: 0%"></div>
-                            <span class="progresso-text" id="progressoText">0 / 50 horas</span>
+                    <!-- Objetivo Selecionado -->
+                    <div class="objetivo-selecionado-container" id="objetivoSelecionadoContainer">
+                        <div class="objetivo-selecionado" id="objetivoSelecionado">
+                            <span class="objetivo-selecionado-label">Seu objetivo este mes:</span>
+                            <span class="objetivo-selecionado-valor" id="objetivoSelecionadoValor">🥇 Pioneiro Regular (50h)</span>
                         </div>
                     </div>
 
-                    <!-- Marcos por Objetivo -->
-                    <div class="objetivos-grid">
-                        <div class="objetivo-card" id="obj15">
-                            <div class="objetivo-header">
-                                <span class="objetivo-icone">🥉</span>
-                                <span class="objetivo-meta">15h</span>
-                            </div>
-                            <div class="objetivo-nome">Pioneiro Auxiliar</span>
-                            <div class="objetivo-progresso">
-                                <div class="objetivo-bar">
-                                    <div class="objetivo-fill" id="fill15" style="width: 0%"></div>
-                                </div>
-                                <span class="objetivo-horas" id="horas15">0 / 15h</span>
-                            </div>
-                            <div class="objetivo-check" id="check15">✓ Atingido</div>
-                        </div>
-
-                        <div class="objetivo-card" id="obj30">
-                            <div class="objetivo-header">
-                                <span class="objetivo-icone">🥈</span>
-                                <span class="objetivo-meta">30h</span>
-                            </div>
-                            <div class="objetivo-nome">Pioneiro Auxiliar Especial</div>
-                            <div class="objetivo-progresso">
-                                <div class="objetivo-bar">
-                                    <div class="objetivo-fill" id="fill30" style="width: 0%"></div>
-                                </div>
-                                <span class="objetivo-horas" id="horas30">0 / 30h</span>
-                            </div>
-                            <div class="objetivo-check" id="check30">✓ Atingido</div>
-                        </div>
-
-                        <div class="objetivo-card" id="obj50">
-                            <div class="objetivo-header">
-                                <span class="objetivo-icone">🥇</span>
-                                <span class="objetivo-meta">50h</span>
-                            </div>
-                            <div class="objetivo-nome">Pioneiro Regular</div>
-                            <div class="objetivo-progresso">
-                                <div class="objetivo-bar">
-                                    <div class="objetivo-fill" id="fill50" style="width: 0%"></div>
-                                </div>
-                                <span class="objetivo-horas" id="horas50">0 / 50h</span>
-                            </div>
-                            <div class="objetivo-check" id="check50">✓ Atingido</div>
-                        </div>
+                    <!-- Progresso -->
+                    <div class="progresso-bar">
+                        <div class="progresso-fill" id="progressoFill" style="width: 0%"></div>
+                        <span class="progresso-text" id="progressoText">0 / 50 horas</span>
                     </div>
-
                     <div class="total-horas">
                         <strong>Total este mes:</strong> <span id="totalHorasMes">0</span> horas
                     </div>
