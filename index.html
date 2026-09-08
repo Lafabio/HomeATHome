@@ -71,6 +71,7 @@
             <ul class="nav-menu" id="navMenu">
                 <li><a href="#cadastro">Cadastro</a></li>
                 <li><a href="#lista">Interessados</a></li>
+                <li><a href="#horas">Horas</a></li>
             </ul>
         </nav>
 
@@ -162,6 +163,99 @@
 
                 <div id="listaInteressados" class="cards-container">
                     <p class="empty-state">Nenhum interessado cadastrado ainda.</p>
+                </div>
+            </section>
+
+            <!-- Horas de Pregacao -->
+            <section class="section" id="horas">
+                <h1>⏱️ Horas de Pregacao</h1>
+                
+                <!-- Cronometro -->
+                <div class="cronometro-container">
+                    <div class="cronometro-display">
+                        <span id="cronometroTempo">00:00:00</span>
+                    </div>
+                    <div class="cronometro-botoes">
+                        <button id="btnIniciar" class="btn-cronometro btn-start" onclick="iniciarCronometro()">▶️ Iniciar</button>
+                        <button id="btnPausar" class="btn-cronometro btn-pause" onclick="pausarCronometro()" style="display:none;">⏸️ Pausar</button>
+                        <button id="btnParar" class="btn-cronometro btn-stop" onclick="pararCronometro()" style="display:none;">⏹️ Parar e Salvar</button>
+                    </div>
+                    <div class="cronometro-info">
+                        <select id="tipoPregacao">
+                            <option value="Estudo Biblico">Estudo Biblico</option>
+                            <option value="Revisita">Revisita</option>
+                            <option value="Publicacao">Publicacao</option>
+                            <option value="Estudo Publico">Estudo Publico</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cadastro Manual -->
+                <div class="manual-container">
+                    <h3>Adicionar Horas Manualmente</h3>
+                    <form id="horasForm" class="horas-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="horasData">Data</label>
+                                <input type="date" id="horasData" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="horasQtd">Horas</label>
+                                <input type="number" id="horasQtd" min="0.5" max="24" step="0.5" placeholder="Ex: 2" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="horasObs">Observacoes</label>
+                            <input type="text" id="horasObs" placeholder="Ex: Estudo com Joao">
+                        </div>
+                        <button type="submit" class="btn-primary">➕ Adicionar Horas</button>
+                    </form>
+                </div>
+
+                <!-- Progresso Mensal -->
+                <div class="progresso-container">
+                    <h3>📊 Progresso Mensal - <span id="mesAtual"></span></h3>
+                    <div class="progresso-bar">
+                        <div class="progresso-fill" id="progressoFill" style="width: 0%"></div>
+                        <span class="progresso-text" id="progressoText">0 / 50 horas</span>
+                    </div>
+                    <div class="marcos">
+                        <div class="marco" id="marco15">
+                            <div class="marco-icone">🥉</div>
+                            <div class="marco-info">
+                                <strong>15h</strong>
+                                <span>Pioneiro Auxiliar</span>
+                            </div>
+                            <div class="marco-check" id="check15">✓</div>
+                        </div>
+                        <div class="marco" id="marco30">
+                            <div class="marco-icone">🥈</div>
+                            <div class="marco-info">
+                                <strong>30h</strong>
+                                <span>Pioneiro Auxiliar Especial</span>
+                            </div>
+                            <div class="marco-check" id="check30">✓</div>
+                        </div>
+                        <div class="marco" id="marco50">
+                            <div class="marco-icone">🥇</div>
+                            <div class="marco-info">
+                                <strong>50h</strong>
+                                <span>Pioneiro Regular</span>
+                            </div>
+                            <div class="marco-check" id="check50">✓</div>
+                        </div>
+                    </div>
+                    <div class="total-horas">
+                        <strong>Total este mes:</strong> <span id="totalHorasMes">0</span> horas
+                    </div>
+                </div>
+
+                <!-- Historico -->
+                <div class="historico-container">
+                    <h3>📅 Historico</h3>
+                    <div id="listaHoras" class="historico-lista">
+                        <p class="empty-state">Nenhum registro de horas ainda.</p>
+                    </div>
                 </div>
             </section>
         </main>

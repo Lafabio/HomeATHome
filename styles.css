@@ -513,6 +513,262 @@ body {
     margin-top: 3rem;
 }
 
+/* ============ HORAS DE PREGACAO ============ */
+
+/* Cronometro */
+.cronometro-container {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.cronometro-display {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 1.5rem;
+    letter-spacing: 2px;
+}
+
+.cronometro-botoes {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.btn-cronometro {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-cronometro:hover {
+    transform: scale(1.05);
+}
+
+.btn-start {
+    background: var(--success);
+    color: var(--white);
+}
+
+.btn-pause {
+    background: var(--warning);
+    color: var(--white);
+}
+
+.btn-stop {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.cronometro-info select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+/* Cadastro Manual */
+.manual-container {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.manual-container h3 {
+    margin-bottom: 1rem;
+    color: var(--secondary);
+}
+
+.horas-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Progresso */
+.progresso-container {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.progresso-container h3 {
+    margin-bottom: 1.5rem;
+    color: var(--secondary);
+}
+
+.progresso-bar {
+    position: relative;
+    height: 40px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.progresso-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), var(--primary));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+    min-width: 0;
+}
+
+.progresso-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    color: var(--secondary);
+    font-size: 0.95rem;
+}
+
+.marcos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.marco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem;
+    background: var(--light);
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.marco.atingido {
+    background: #dcfce7;
+    border-color: var(--success);
+}
+
+.marco-icone {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.marco-info strong {
+    display: block;
+    font-size: 1.25rem;
+    color: var(--secondary);
+}
+
+.marco-info span {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+.marco-check {
+    display: none;
+    margin-top: 0.5rem;
+    width: 28px;
+    height: 28px;
+    background: var(--success);
+    color: var(--white);
+    border-radius: 50%;
+    font-weight: 700;
+    line-height: 28px;
+}
+
+.marco.atingido .marco-check {
+    display: block;
+}
+
+.total-horas {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 1rem;
+    background: var(--light);
+    border-radius: 8px;
+}
+
+.total-horas span {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* Historico */
+.historico-container {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.historico-container h3 {
+    margin-bottom: 1rem;
+    color: var(--secondary);
+}
+
+.historico-lista {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.historico-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.historico-item:last-child {
+    border-bottom: none;
+}
+
+.historico-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.historico-item-data {
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.historico-item-tipo {
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+.historico-item-horas {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.historico-item-delete {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+}
+
 /* Mobile Responsive */
 @media (max-width: 900px) {
     .form-grid {
@@ -551,6 +807,18 @@ body {
     }
     
     .cards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .cronometro-display {
+        font-size: 2.5rem;
+    }
+    
+    .marcos {
+        grid-template-columns: 1fr;
+    }
+    
+    .horas-form .form-row {
         grid-template-columns: 1fr;
     }
 }

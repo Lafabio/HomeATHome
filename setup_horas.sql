@@ -1,21 +1,20 @@
--- Tabela para registrar horas de preguacao
+-- Tabela para registrar horas de pregação
 CREATE TABLE IF NOT EXISTS horas_pregacao (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     data DATE NOT NULL DEFAULT CURRENT_DATE,
-    horas DECIMAL(5,2) NOT NULL,
+    horas DECIMAL(5,2) NOT NULL DEFAULT 0,
     minutos INTEGER NOT NULL DEFAULT 0,
+    tipo VARCHAR(50) DEFAULT 'Estudo Biblico',
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Indice para user_id
-CREATE INDEX IF NOT EXISTS idx_horas_pregacao_user_id ON horas_pregacao(user_id);
+-- Indices
+CREATE INDEX IF NOT EXISTS idx_horas_user_id ON horas_pregacao(user_id);
+CREATE INDEX IF NOT EXISTS idx_horas_data ON horas_pregacao(data);
 
--- Indice para buscas por mes/ano
-CREATE INDEX IF NOT EXISTS idx_horas_pregacao_data ON horas_pregacao(user_id, data);
-
--- RLS - cada usuario ve apenas suas horas
+-- RLS - cada usuario ve apenas seus dados
 ALTER TABLE horas_pregacao ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Usuarios veem suas horas" ON horas_pregacao

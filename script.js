@@ -113,6 +113,7 @@ function entrarNoApp(usuario) {
         initMap();
     }
     carregarInteressados();
+    carregarHoras();
 }
 
 // Verificar se ja esta logado
@@ -490,17 +491,15 @@ function limparFormulario() {
 
 // ============ INICIALIZACAO ============
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar Supabase
-    try {
-        if (window.supabase) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
-    } catch (e) {
-        console.error('Erro ao inicializar Supabase:', e);
-    }
+var cronometroInterval = null;
+var cronometroSegundos = 0;
+var cronometroRodando = false;
 
+document.addEventListener('DOMContentLoaded', function() {
     verificarSessao();
+    
+    // Data atual no campo de horas
+    document.getElementById('horasData').value = new Date().toISOString().split('T')[0];
     
     // Login Enter
     document.getElementById('loginSenha').addEventListener('keypress', function(e) {
@@ -512,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Enter') fazerCadastro();
     });
 
-    // Form submit
+    // Form submit interessados
     document.getElementById('cadastroForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -532,6 +531,20 @@ document.addEventListener('DOMContentLoaded', function() {
         limparFormulario();
         
         document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Form submit horas
+    document.getElementById('horasForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        var horas = parseFloat(document.getElementById('horasQtd').value);
+        var data = document.getElementById('horasData').value;
+        var obs = document.getElementById('horasObs').value;
+        
+        await salvarHoras(data, horas, 'Manual', obs);
+        
+        document.getElementById('horasQtd').value = '';
+        document.getElementById('horasObs').value = '';
     });
     
     document.getElementById('confirmDeleteBtn').addEventListener('click', excluirInteressado);
@@ -560,3 +573,194 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.value = value;
     });
 });
+
+// ============ CRONOMETRO ============
+
+function iniciarCronometro() {
+    cronometroRodando = true;
+    document.getElementById('btnIniciar').style.display = 'none';
+    document.getElementById('btnPausar').style.display = 'inline-block';
+    document.getElementById('btnParar').style.display = 'inline-block';
+    
+    cronometroInterval = setInterval(function() {
+        cronometroSegundos++;
+        atualizarDisplayCronometro();
+    }, 1000);
+}
+
+function pausarCronometro() {
+    cronometroRodando = false;
+    clearInterval(cronometroInterval);
+    document.getElementById('btnPausar').style.display = 'none';
+    document.getElementById('btnIniciar').style.display = 'inline-block';
+    document.getElementById('btnIniciar').textContent = '▶️ Continuar';
+}
+
+function pararCronometro() {
+    clearInterval(cronometroInterval);
+    cronometroRodando = false;
+    
+    var horas = cronometroSegundos / 3600;
+    var tipo = document.getElementById('tipoPregacao').value;
+    
+    if (horas < 0.01) {
+        alert('Tempo muito curto para registrar.');
+        resetarCronometro();
+        return;
+    }
+    
+    var data = new Date().toISOString().split('T')[0];
+    salvarHoras(data, parseFloat(horas.toFixed(2)), tipo, '');
+    
+    resetarCronometro();
+}
+
+function resetarCronometro() {
+    cronometroSegundos = 0;
+    atualizarDisplayCronometro();
+    document.getElementById('btnPausar').style.display = 'none';
+    document.getElementById('btnParar').style.display = 'none';
+    document.getElementById('btnIniciar').style.display = 'inline-block';
+    document.getElementById('btnIniciar').textContent = '▶️ Iniciar';
+}
+
+function atualizarDisplayCronometro() {
+    var horas = Math.floor(cronometroSegundos / 3600);
+    var minutos = Math.floor((cronometroSegundos % 3600) / 60);
+    var segundos = cronometroSegundos % 60;
+    
+    var display = 
+        (horas < 10 ? '0' : '') + horas + ':' +
+        (minutos < 10 ? '0' : '') + minutos + ':' +
+        (segundos < 10 ? '0' : '') + segundos;
+    
+    document.getElementById('cronometroTempo').textContent = display;
+}
+
+// ============ HORAS (SUPABASE) ============
+
+var horasRegistros = [];
+
+async function salvarHoras(data, horas, tipo, obs) {
+    if (!supabaseClient || !usuarioAtual) {
+        alert('Faca login para salvar.');
+        return;
+    }
+    
+    try {
+        var result = await supabaseClient
+            .from('horas_pregacao')
+            .insert({
+                user_id: usuarioAtual.id,
+                data: data,
+                horas: horas,
+                minutos: Math.round(horas * 60),
+                tipo: tipo,
+                observacoes: obs
+            });
+        
+        if (result.error) throw result.error;
+        
+        await carregarHoras();
+    } catch (err) {
+        console.error('Erro ao salvar horas:', err);
+        alert('Erro ao salvar horas.');
+    }
+}
+
+async function excluirHora(id) {
+    if (!supabaseClient || !usuarioAtual) return;
+    
+    try {
+        var result = await supabaseClient
+            .from('horas_pregacao')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', usuarioAtual.id);
+        
+        if (result.error) throw result.error;
+        
+        await carregarHoras();
+    } catch (err) {
+        console.error('Erro ao excluir hora:', err);
+    }
+}
+
+async function carregarHoras() {
+    if (!supabaseClient || !usuarioAtual) return;
+    
+    try {
+        var result = await supabaseClient
+            .from('horas_pregacao')
+            .select('*')
+            .eq('user_id', usuarioAtual.id)
+            .order('data', { ascending: false });
+        
+        if (result.error) throw result.error;
+        
+        horasRegistros = result.data || [];
+        renderizarHoras();
+        atualizarProgresso();
+    } catch (err) {
+        console.error('Erro ao carregar horas:', err);
+    }
+}
+
+function renderizarHoras() {
+    var container = document.getElementById('listaHoras');
+    
+    if (horasRegistros.length === 0) {
+        container.innerHTML = '<p class="empty-state">Nenhum registro de horas ainda.</p>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < horasRegistros.length; i++) {
+        var reg = horasRegistros[i];
+        var dataFormatada = new Date(reg.data + 'T12:00:00').toLocaleDateString('pt-BR');
+        
+        html += '<div class="historico-item">';
+        html += '<div class="historico-item-info">';
+        html += '<span class="historico-item-data">' + dataFormatada + '</span>';
+        html += '<span class="historico-item-tipo">' + reg.tipo + (reg.observacoes ? ' - ' + reg.observacoes : '') + '</span>';
+        html += '</div>';
+        html += '<span class="historico-item-horas">' + reg.horas.toFixed(1) + 'h</span>';
+        html += '<button class="historico-item-delete" onclick="excluirHora(' + reg.id + ')">🗑️</button>';
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function atualizarProgresso() {
+    var agora = new Date();
+    var mesAtual = agora.getMonth();
+    var anoAtual = agora.getFullYear();
+    
+    var nomesMeses = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    document.getElementById('mesAtual').textContent = nomesMeses[mesAtual] + ' ' + anoAtual;
+    
+    var totalMes = 0;
+    for (var i = 0; i < horasRegistros.length; i++) {
+        var dataReg = new Date(horasRegistros[i].data + 'T12:00:00');
+        if (dataReg.getMonth() === mesAtual && dataReg.getFullYear() === anoAtual) {
+            totalMes += horasRegistros[i].horas;
+        }
+    }
+    
+    document.getElementById('totalHorasMes').textContent = totalMes.toFixed(1);
+    
+    var percentual = Math.min((totalMes / 50) * 100, 100);
+    document.getElementById('progressoFill').style.width = percentual + '%';
+    document.getElementById('progressoText').textContent = totalMes.toFixed(1) + ' / 50 horas';
+    
+    // Marcos
+    var marco15 = document.getElementById('marco15');
+    var marco30 = document.getElementById('marco30');
+    var marco50 = document.getElementById('marco50');
+    
+    marco15.classList.toggle('atingido', totalMes >= 15);
+    marco30.classList.toggle('atingido', totalMes >= 30);
+    marco50.classList.toggle('atingido', totalMes >= 50);
+}
